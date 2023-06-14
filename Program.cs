@@ -25,8 +25,43 @@ class MyWindow : Window {
       image.Source = mBmp;
       Content = image;
 
+      MouseDown += OnMouseDown;
       DrawMandelbrot (-0.5, 0, 1);
    }
+
+   private void OnMouseDown (object sender, MouseButtonEventArgs e) {
+      var pt = e.GetPosition (this);
+      int x = (int)pt.X, y = (int)pt.Y;
+      if (x1 == -1) { x1 = x; y1 = y; }
+      else { // Draw line using Bresenham's line algorithm
+         try {
+            mBmp.Lock ();
+            mBase = mBmp.BackBuffer;
+            int x2 = x, y2 = y;
+            // Swap points
+            if (x1 > x2) { (x1, x2) = (x2, x1); (y1, y2) = (y2, y1); }
+            int dx = x2 - x1, dy = y2 - y1;
+            bool yOK = y1 < y2;
+            if (!yOK) (dx, dy) = (dy, dx);
+            int c1 = 2 * dy, c2 = 2 * (dy - dx);
+            int decision = 2 * dy - dx;
+            while (x1 != x2 && y1 != y2) {
+               SetPixel (x1, y1, 255);
+               mBmp.AddDirtyRect (new Int32Rect (x1, y1, 1, 1));
+               if (!yOK) y1--; else x1++;
+               if (decision < 0) decision += c1;
+               else { 
+                  decision += c2;
+                  if (!yOK) x1++; else y1++;
+               }
+            }
+         } finally {
+            x1 = y1 = -1;
+            mBmp.Unlock ();
+         }
+      }
+   }
+   int x1 = -1, y1 = -1;
 
    void DrawMandelbrot (double xc, double yc, double zoom) {
       try {
