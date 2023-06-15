@@ -3,6 +3,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using static System.Math;
 
 namespace A25;
 
@@ -27,38 +28,26 @@ class MyWindow : Window {
 
       MouseDown += OnMouseDown;
       DrawMandelbrot (-0.5, 0, 1);
+      //// Horizontal and vertical lines
+      DrawLine (10, 50, 10, 100); // x1 == x2 and y1 < y2
+      DrawLine (100, 100, 10, 100); // y1 == y2 and x1 > x2
+      DrawLine (100, 100, 100, 50); // x1 == x2 and y1 > y2
+      DrawLine (100, 50, 10, 50); // y1 == y2 and x1 > x2
+      // Slanting lines
+      DrawLine (10, 75, 45, 100); // x1 < x2 and y1 < y2
+      DrawLine (45, 100, 100, 75); // x1 < x2 and y1 > y2;
+      DrawLine (100, 75, 45, 50); // x1 > x2 and y1 > y2;
+      DrawLine (45, 50, 10, 75); // x1 > x2 and y1 < y2;
    }
 
    private void OnMouseDown (object sender, MouseButtonEventArgs e) {
       var pt = e.GetPosition (this);
       int x = (int)pt.X, y = (int)pt.Y;
       if (x1 == -1) { x1 = x; y1 = y; }
-      else { // Draw line using Bresenham's line algorithm
-         try {
-            mBmp.Lock ();
-            mBase = mBmp.BackBuffer;
-            int x2 = x, y2 = y;
-            // Swap points
-            if (x1 > x2) { (x1, x2) = (x2, x1); (y1, y2) = (y2, y1); }
-            int dx = x2 - x1, dy = y2 - y1;
-            bool yOK = y1 < y2;
-            if (!yOK) (dx, dy) = (dy, dx);
-            int c1 = 2 * dy, c2 = 2 * (dy - dx);
-            int decision = 2 * dy - dx;
-            while (x1 != x2 && y1 != y2) {
-               SetPixel (x1, y1, 255);
-               mBmp.AddDirtyRect (new Int32Rect (x1, y1, 1, 1));
-               if (!yOK) y1--; else x1++;
-               if (decision < 0) decision += c1;
-               else { 
-                  decision += c2;
-                  if (!yOK) x1++; else y1++;
-               }
-            }
-         } finally {
-            x1 = y1 = -1;
-            mBmp.Unlock ();
-         }
+      else {
+         int x2 = x, y2 = y;
+         DrawLine (x1, y1, x2, y2);
+         x1 = y1 = -1;
       }
    }
    int x1 = -1, y1 = -1;
@@ -82,6 +71,49 @@ class MyWindow : Window {
       }
    }
 
+   // Draw line using Bresenham's line algorithm
+   void DrawLine (int x1, int y1, int x2, int y2) {
+      try {
+         mBmp.Lock ();
+         mBase = mBmp.BackBuffer;
+         // Swap points
+         if (x1 > x2) Swap ();
+         int dx = x2 - x1, dy = y2 - y1;
+         bool yOK = y1 <= y2;
+         if (Abs (dy) < Abs (dx)) {
+            dx = x2 - x1; dy = y2 - y1;
+            int yStep = 1;
+            if (dy < 0) { yStep = -1; dy = -dy; }
+            int c1 = 2 * dy, c2 = 2 * (dy - dx);
+            int decision = 2 * dy - dx;
+            while (x1 <= x2) {
+               SetPixel (x1, y1, 255);
+               mBmp.AddDirtyRect (new Int32Rect (x1, y1, 1, 1));
+               x1++;
+               if (decision < 0) decision += c1;
+               else { decision += c2; y1 += yStep; }
+            }
+         } else {
+            if (!yOK) Swap ();
+            dx = x2 - x1; dy = y2 - y1;
+            int xStep = 1;
+            if (dx < 0) { xStep = -1; dx = -dx; }
+            (dx, dy) = (dy, dx);
+            int c1 = 2 * dy, c2 = 2 * (dy - dx);
+            int decision = 2 * dy - dx;
+            while (y1 <= y2) {
+               SetPixel (x1, y1, 255);
+               mBmp.AddDirtyRect (new Int32Rect (x1, y1, 1, 1));
+               y1++;
+               if (decision < 0) decision += c1;
+               else { decision += c2; x1 += xStep; }
+            }
+         }
+      } finally {
+         mBmp.Unlock ();
+      }
+      void Swap () { (x1, x2) = (x2, x1); (y1, y2) = (y2, y1); }
+   }
    byte Escape (Complex c) {
       Complex z = Complex.Zero;
       for (int i = 1; i < 32; i++) {
