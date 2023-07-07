@@ -46,25 +46,22 @@ namespace GrayBMP {
          }
 
          int h = (int)Height;
-         List<(int X, int Y)> intersections = new ();
-         List<int[]> spans = new ();
+         List<int> intersections = new ();
          for (int y = 0; y < h; y++) {
             intersections.Clear ();
             for (int i = 0; i < edges.Count; i++) {
                var a = edges[i];
                int v1 = a[1], v3 = a[3];
                if ((v1 <= y && v3 > y) || (v1 > y && v3 <= y))
-                  intersections.Add (new ((int)(a[0] + slopes[i] * (y - v1)), h - y));
+                  intersections.Add ((int)(a[0] + slopes[i] * (y - v1)));
             }
 
-            intersections = intersections.OrderBy (a => a.X).ToList ();
+            intersections = intersections.OrderBy (a => a).ToList ();
             if (intersections.Count % 2 != 0) throw new Exception ();
-            for (int n = 0; n < intersections.Count; n += 2) {
-               var (x1, y1) = intersections[n]; var (x2, y2) = intersections[n + 1];
-               spans.Add (new[] { x1, y1, x2, y2 });
-            }
+            var yLine = h - y; // Need this otherwise content will be rendered flipped
+            for (int n = 0; n < intersections.Count; n += 2)
+               mBmp.DrawLine (intersections[n], yLine, intersections[n + 1], yLine, 255);
          }
-         spans.ForEach (a => mBmp.DrawLine (a[0], a[1], a[2], a[3], 255));
       }
    }
 }
