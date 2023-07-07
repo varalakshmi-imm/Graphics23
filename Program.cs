@@ -6,6 +6,13 @@ namespace GrayBMP;
 class Program {
    [STAThread]
    static void Main () {
+      // Create a PolyFill window that demonstrates the polygon filling with scan line algorithm
+      new PolyFillWin ("data/leaf-fill.txt").Show ();
+      new Application ().Run ();
+   }
+
+   [STAThread]
+   static void Main2 () {
       // Create a LinesWin that demonstrates the Line Drawing
       new LinesWin ().Show ();
       new Application ().Run ();
