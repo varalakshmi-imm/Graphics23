@@ -78,7 +78,6 @@ class GrayBMP {
    public void DrawHorizontalLine (int x1, int x2, int y, int gray) {
       Begin ();
       if (x1 > x2) (x1, x2) = (x2, x1);
-      int stepX = 1;
       Check (x1, y); Check (x2, y);
       Dirty (x1, y, x2, y);
       byte bGray = (byte)gray;
@@ -87,7 +86,7 @@ class GrayBMP {
          byte* ptr = (byte*)(Buffer + y * mStride + x1);
          while (x1 < x2) {
             *ptr = bGray;
-            x1 += stepX; ptr += stepX;
+            x1++; ptr++;
          }
       }
       End ();
