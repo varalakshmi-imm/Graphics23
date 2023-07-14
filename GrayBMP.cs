@@ -125,6 +125,33 @@ class GrayBMP {
       }
       End ();
    }
+   public void DrawThickLine (int x0, int y0, int x1, int y1, int width, int gray) {
+      if (width < 2) { DrawLine (x0, y0, x1, y1, gray); return; }
+      mPF.Reset ();
+      // Convert line into a polygon with 8 vertices that has two half-hexagons at the end
+      double halfWidth = width / 2;
+      var pts = new List<Point2> ();
+      Point2 p0 = new (x0, y0), p1 = new (x1, y1);
+      var fAngle = p0.AngleTo (p1);
+      double a1 = PI / 2, a2 = PI / 6;
+      pts.Add (p0.RadialMove (halfWidth, fAngle + a1));
+      pts.Add (p1.RadialMove (halfWidth, fAngle + a1));
+      pts.Add (p1.RadialMove (halfWidth, fAngle + a2));
+      pts.Add (p1.RadialMove (halfWidth, fAngle - a2));
+      pts.Add (p1.RadialMove (-halfWidth, fAngle + a1));
+      pts.Add (p0.RadialMove (-halfWidth, fAngle + a1));
+      pts.Add (p0.RadialMove (-halfWidth, fAngle + a2));
+      pts.Add (p0.RadialMove (-halfWidth, fAngle - a2));
+
+      var c = pts.Count;
+      for (int i = 0; i < c; i++) {
+         Point2 pt = pts[i], pt2 = pts[(i + 1) % c];
+         (int ax, int ay) = pt.Round (); (int bx, int by) = pt2.Round ();
+         mPF.AddLine (ax, ay, bx, by);
+      }
+      mPF.Fill (this, gray);
+   }
+   PolyFillFast mPF = new ();
 
    /// <summary>Call End after finishing the update of the bitmap</summary>
    public void End () {
