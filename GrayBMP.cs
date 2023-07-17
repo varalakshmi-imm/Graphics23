@@ -133,15 +133,15 @@ class GrayBMP {
       var pts = new List<Point2> ();
       Point2 p0 = new (x0, y0), p1 = new (x1, y1);
       var fAngle = p0.AngleTo (p1);
-      double a1 = PI / 2, a2 = PI / 6;
-      pts.Add (p0.RadialMove (halfWidth, fAngle + a1));
-      pts.Add (p1.RadialMove (halfWidth, fAngle + a1));
-      pts.Add (p1.RadialMove (halfWidth, fAngle + a2));
-      pts.Add (p1.RadialMove (halfWidth, fAngle - a2));
-      pts.Add (p1.RadialMove (-halfWidth, fAngle + a1));
-      pts.Add (p0.RadialMove (-halfWidth, fAngle + a1));
-      pts.Add (p0.RadialMove (-halfWidth, fAngle + a2));
-      pts.Add (p0.RadialMove (-halfWidth, fAngle - a2));
+      double a1 = PI / 2, a2 = PI / 3;
+      for (int nPass = 0; nPass < 2; nPass++) {
+         (Point2 p, double r) = (nPass == 0) ? (p1, halfWidth) : (p0, -halfWidth);
+         var ang = fAngle - a1;
+         for (int i = 0; i < 4; i++) {
+            pts.Add (p.RadialMove (r, ang));
+            ang += a2;
+         }
+      }
 
       var c = pts.Count;
       for (int i = 0; i < c; i++) {

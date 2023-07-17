@@ -32,12 +32,10 @@ readonly record struct Point2 (double X, double Y) {
       double dx = b.X - X, dy = b.Y - Y;
       if (dx != 0 || dy != 0) {
          double fAngle = Atan2 (dy, dx);
-         if (EQ (fAngle, -PI)) fAngle = PI;
          return fAngle;
       }
       return 0;
    }
-   public bool EQ (double a, double b) => Abs (a - b) < 1e-6;
 }
 
 /// <summary>A Line in 2 dimensions (A -> B)</summary>
