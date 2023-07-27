@@ -21,6 +21,9 @@ readonly record struct Point2 (double X, double Y) {
    public (int X, int Y) Round () => ((int)(X + 0.5), (int)(Y + 0.5));
 
    public double AngleTo (Point2 b) => Math.Atan2 (b.Y - Y, b.X - X);
+
+   /// <summary>Returns true if the given point lies to the _left_ of the line a-b</summary>
+   public bool LeftOf (Point2 a, Point2 b) => (b.X - a.X) * (Y - a.Y) - (X - a.X) * (b.Y - a.Y) >= 0;
    public Point2 RadialMove (double r, double th) => new (X + r * Cos (th), Y + r * Sin (th));
 
    public static Vector2 operator - (Point2 a, Point2 b) => new (a.X - b.X, a.Y - b.Y);
@@ -76,6 +79,10 @@ readonly struct Bound2 {
       }
    }
 
+   /// <summary>Does this rectangle contain the given point?</summary>
+   public bool Contains (Point2 a)
+      => a.X >= X0 && a.X <= X1 && a.Y >= Y0 && a.Y <= Y1;
+
    public override string ToString ()
       => $"{Round (X0, 3)},{Round (Y0, 3)} to {Round (X1, 3)},{Round (Y1, 3)}";
 
@@ -130,9 +137,38 @@ class Polygon {
 class Drawing {
    public void Add (Polygon poly) {
       mPolys.Add (poly);
-      mBound = new (); 
+      mBound = new ();
+      if (mHullPts.Count > 0) {
+         var pts = mHullPts.Select (a => a).ToList ();
+         var bnd = new Bound2 (pts);
+         pts.AddRange (GetConvexHull (poly.Pts).Where (a => !bnd.Contains (a)));
+         mHullPts = GetConvexHull (pts).ToList ();
+      }
    }
 
+   IReadOnlyList<Point2> ConvexHull {
+      get {
+         if (mHullPts.Count == 0)
+            mHullPts = GetConvexHull (Polys.SelectMany (a => a.Pts.Select (a => a))).ToList ();
+         return mHullPts;
+      }
+   }
+   List<Point2> mHullPts = new ();
+
+   IReadOnlyList<Point2> GetConvexHull (IEnumerable<Point2> pts) {
+      pts = pts.OrderBy (pt => pt.Y).ThenBy (pt => pt.X);
+      Point2 p0 = pts.First (); // Lowest and leftmost point
+      pts = pts.OrderBy (pt => p0.AngleTo (pt)); // sort by polar angle to p0
+      Stack<Point2> hStack = new ();
+      foreach (var pt in pts) {
+         if (hStack.Count < 2) { hStack.Push (pt); continue; }
+         Point2 p = hStack.Pop ();
+         while (hStack.Count > 1 && !pt.LeftOf (hStack.Peek (), p))
+            p = hStack.Pop ();
+         hStack.Push (p); hStack.Push (pt);
+      }
+      return hStack.ToArray ();
+   }
    public IReadOnlyList<Polygon> Polys => mPolys;
    List<Polygon> mPolys = new ();
 
@@ -150,10 +186,20 @@ class Drawing {
    }
    Bound2 mBound;
 
-   public Bound2 GetBound (Matrix2 xfm) 
-      => new Bound2 (Polys.SelectMany (a => a.Pts.Select (p => p * xfm)));
+   public Bound2 GetBound (Matrix2 xfm)
+      => new (ConvexHull.Select (p => p * xfm));
 
    /// <summary>Enumerate all the lines in this drawing</summary>
-   public IEnumerable<(Point2 A, Point2 B)> EnumLines (Matrix2 xfm) 
+   public IEnumerable<(Point2 A, Point2 B)> EnumLines (Matrix2 xfm)
       => mPolys.SelectMany (a => a.EnumLines (xfm));
+
+   public IEnumerable<(Point2 A, Point2 B)> EnumConvexHullLines (Matrix2 xfm) {
+      var hullPts = ConvexHull;
+      Point2 p0 = hullPts[^1] * xfm;
+      for (int i = 0, n = hullPts.Count; i < n; i++) {
+         Point2 p1 = hullPts[i] * xfm;
+         yield return (p0, p1);
+         p0 = p1;
+      }
+   }
 }

@@ -56,6 +56,26 @@ class PolyFillWin : Window {
       mBmp.Begin ();
       mBmp.Clear (192);
 
+      if (mRotate == 90) {
+         var pts = new List<Point2> {
+            new Point2 (10, 300),
+            new Point2 (200, 300),
+            new Point2 (200, 400),
+            new Point2 (10, 400)
+         };
+         mDwg.Add (new Polygon (pts));
+      }
+
+      if (mRotate == 120) {
+         var pts = new List<Point2> {
+            new Point2 (1000, 300),
+            new Point2 (2000, 300),
+            new Point2 (2000, 400),
+            new Point2 (1000, 400)
+         };
+         mDwg.Add (new Polygon (pts));
+      }
+
       Matrix2 xfm1 = Matrix2.Rotation (mRotate * Math.PI / 180);
       var bound = mDwg.GetBound (xfm1);
       var xfm2 = ComposeViewXfm (bound, mBmp.Width, mBmp.Height, 20);
@@ -65,7 +85,7 @@ class PolyFillWin : Window {
       foreach (var (a, b) in mDwg.EnumLines (xfm))
          mPF.AddLine (a, b);
       mPF.Fill (mBmp, 255);
-      foreach (var (a, b) in mDwg.EnumLines (xfm))
+      foreach (var (a, b) in mDwg.EnumConvexHullLines (xfm))
          mBmp.DrawLine (a, b, 0);
 
       mBmp.End ();
